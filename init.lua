@@ -64,11 +64,19 @@ vim.opt.scrolloff = 10
 --  NOTE: Maybe make this another file?
 --
 
-vim.keymap.set('n', 'fsq', '<cmd>:wq<CR>', {
+vim.keymap.set('n', '<Tab>', '<cmd>:bnext<CR>', {
+  desc = 'Go to next buffer',
+})
+
+vim.keymap.set('n', '<C-Tab>', '<cmd>:bprevious<CR>', {
+  desc = 'Go to previous buffer',
+})
+
+vim.keymap.set('n', 'fsq', '<cmd>:w|bd<CR>', {
   desc = 'Save and Quit file',
 })
 
-vim.keymap.set('n', 'fq', '<cmd>:q<CR>', {
+vim.keymap.set('n', 'fq', '<cmd>:bd<CR>', {
   desc = 'Quit file',
 })
 
@@ -157,7 +165,17 @@ require('lazy').setup({
   {
     -- autoclose brackets
     'm4xshen/autoclose.nvim',
-    opts = {},
+    opts = {
+      keys = {
+        ['<'] = {
+          -- autoclose < > setup
+          escape = false,
+          close = true,
+          pair = '<>',
+          disabled_filetypes = {},
+        },
+      },
+    },
   },
   { -- Code Runner
     'CRAG666/code_runner.nvim',
@@ -165,7 +183,12 @@ require('lazy').setup({
       filetype = {
         -- fixing python >> python3
         python = 'python3 -u',
+        rust = {
+          -- Default is rustc <file>... this creates an executable in the current dir
+          'cargo run',
+        },
       },
+      mode = 'term',
     },
   },
   -- NOTE: Plugins can also be added by using a table,
