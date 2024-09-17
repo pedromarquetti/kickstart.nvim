@@ -4,7 +4,7 @@
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.opt`
@@ -60,15 +60,29 @@ vim.opt.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.opt.scrolloff = 10
 
+-- Creating a custom UnsavedFile highlight group to be used as unsaved file flag
+local hl_name = 'UnsavedFile'
+local bg_hl = vim.api.nvim_get_hl(0, {
+  name = hl_name,
+})
+local fg_hl = vim.api.nvim_get_hl(0, {
+  name = hl_name,
+})
+vim.api.nvim_set_hl(0, hl_name, {
+  bold = true,
+  bg = ('yellow'):format(bg_hl.bg),
+  fg = ('black'):format(fg_hl.fg),
+})
+
 -- [[ My Custom Keymaps ]]
 --  NOTE: Maybe make this another file?
 --
 
-vim.keymap.set('n', '<Tab>', '<cmd>:bnext<CR>', {
+vim.keymap.set('n', '<leader>n', '<cmd>:bnext<CR>', {
   desc = 'Go to next buffer',
 })
 
-vim.keymap.set('n', '<C-Tab>', '<cmd>:bprevious<CR>', {
+vim.keymap.set('n', '<leader>p', '<cmd>:bprevious<CR>', {
   desc = 'Go to previous buffer',
 })
 
@@ -564,7 +578,15 @@ require('lazy').setup({
       local servers = {
         clangd = {},
         -- basedpyright does not require Node (i have lazy load ON for NVM)
-        basedpyright = {},
+        basedpyright = {
+          settings = {
+            basedpyright = {
+              analysis = {
+                typeCheckingMode = 'standard',
+              },
+            },
+          },
+        },
         rust_analyzer = {},
         bashls = {},
         lua_ls = {
@@ -818,22 +840,28 @@ require('lazy').setup({
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
-
+      require('mini.icons').setup()
       -- Simple and easy statusline.
       --  You could remove this setup call if you don't like it,
       --  and try some other statusline plugin
       local statusline = require 'mini.statusline'
       -- set use_icons to true if you have a Nerd Font
-      statusline.setup { use_icons = vim.g.have_nerd_font }
+      statusline.setup {
+        use_icons = vim.g.have_nerd_font,
+      }
 
       -- You can configure sections in the statusline by overriding their
       -- default behavior. For example, here we set the section for
       -- cursor location to LINE:COLUMN
       ---@diagnostic disable-next-line: duplicate-set-field
       statusline.section_location = function()
-        return '%2l:%-2v'
+        return '%*%2l:%-2v'
       end
 
+      ---@diagnostic disable-next-line: duplicate-set-field
+      statusline.section_filename = function()
+        return '%f %#UnsavedFile#%m%*%'
+      end
       -- ... and there is more!
       --  Check out: https://github.com/echasnovski/mini.nvim
     end,
@@ -907,6 +935,3 @@ require('lazy').setup({
     },
   },
 })
-
--- The line beneath this is called `modeline`. See `:help modeline`
--- vim: ts=2 sts=2 sw=2 et
