@@ -60,6 +60,12 @@ vim.opt.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.opt.scrolloff = 10
 
+-- settings some options for tabs
+vim.opt.tabstop = 2
+vim.opt.shiftwidth = 2
+vim.opt.expandtab = true
+vim.bo.softtabstop = 2
+
 -- Creating a custom UnsavedFile highlight group to be used as unsaved file flag
 local hl_name = 'UnsavedFile'
 local bg_hl = vim.api.nvim_get_hl(0, {
@@ -102,7 +108,8 @@ vim.keymap.set('n', '<F2>', '<cmd>RunCode<CR>', {
   desc = 'Run RunCode command',
 })
 
-vim.keymap.set('n', '<C-e>', '<cmd>Explore<CR>', { desc = 'Open file explorer' })
+-- Open mini-files
+vim.keymap.set('n', '<C-e>', '<cmd>lua MiniFiles.open()<CR>', { desc = 'Open file explorer' })
 
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
@@ -138,6 +145,24 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
+
+-- -- Run nvm on bash scripts
+-- vim.api.nvim_create_autocmd('BufReadPre', {
+--   desc = 'Run "nvm use code " on .sh files. bashls requires node',
+--   group = vim.api.nvim_create_augroup('nvm-start-cmd', { clear = true }),
+--   callback = function(opts)
+--     local filetype = vim.bo.filetype
+--
+-- vim.cmd.echo(filetype.format('"%s"', filetype))
+--   if vim.bo[opts.buf].filetype == ('shell' or 'sh' or 'bash') then
+--     vim.cmd = 'lua print("remember to run nvm use code to enable bashls")'
+--   else
+--     vim.cmd = 'lua print("oi")'
+--   end
+--   vim.cmd { cmd = 'echo', args = { '"foo"' } }
+--   vim.cmd.echo '"foo"'
+--   end,
+-- })
 
 -- Highlight when yanking (copying) text
 --  Try it with `yap` in normal mode
@@ -180,21 +205,29 @@ require('lazy').setup({
     -- autoclose brackets
     'm4xshen/autoclose.nvim',
     opts = {
-      keys = {
-        ['<'] = {
-          -- autoclose < > setup
-          escape = false,
-          close = true,
-          pair = '<>',
-          disabled_filetypes = {},
-        },
-      },
+      -- commenting this out because it was breaking html autoclose tag plugins
+      -- keys = {
+      --   ['<'] = {
+      --     -- autoclose < > setup
+      --     escape = false,
+      --     close = true,
+      --     pair = '<>',
+      --     disabled_filetypes = {},
+      --   },
+      -- },
     },
   },
+
+  { --auto close html tags
+    'windwp/nvim-ts-autotag',
+    opts = {},
+  },
+
   { -- Code Runner
     'CRAG666/code_runner.nvim',
     opts = {
       filetype = {
+        typescript = 'ts-node $file',
         -- fixing python >> python3
         python = 'python3 -u',
         rust = {
@@ -361,7 +394,14 @@ require('lazy').setup({
         --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
         --   },
         -- },
-        -- pickers = {}
+        pickers = {
+          find_files = {
+            -- show hidden files
+            hidden = true,
+            -- show .gitignore files
+            no_ignore = true,
+          },
+        },
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -576,6 +616,7 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
+        ts_ls = {},
         clangd = {},
         -- basedpyright does not require Node (i have lazy load ON for NVM)
         basedpyright = {
@@ -692,18 +733,12 @@ require('lazy').setup({
           {
             'rafamadriz/friendly-snippets',
             config = function()
-              require('luasnip.loaders.from_vscode').load {
+              -- require('luasnip.loaders.from_vscode').lazy_load()
+              require('luasnip.loaders.from_vscode').lazy_load {
                 paths = {
-                  './snippets',
+                  '~/.config/Code/User/snippets/',
                 },
               }
-
-              -- require('luasnip.loaders.from_vscode').lazy_load {
-              -- paths = {
-              -- '~/.config/Code/User/snippets/python.json',
-              -- './snippets/*',
-              -- },
-              -- }
             end,
           },
         },
@@ -834,6 +869,14 @@ require('lazy').setup({
       --  - ci'  - [C]hange [I]nside [']quote
       require('mini.ai').setup { n_lines = 500 }
 
+      -- mini.files
+      require('mini.files').setup {
+        windows = {
+          -- Show preview of currently selected item in file explorer
+          preview = true,
+        },
+      }
+
       -- Add/delete/replace surroundings (brackets, quotes, etc.)
       --
       -- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
@@ -860,10 +903,8 @@ require('lazy').setup({
 
       ---@diagnostic disable-next-line: duplicate-set-field
       statusline.section_filename = function()
-        return '%f %#UnsavedFile#%m%*%'
+        return '%f%#UnsavedFile#%m%*%'
       end
-      -- ... and there is more!
-      --  Check out: https://github.com/echasnovski/mini.nvim
     end,
   },
   { -- Highlight, edit, and navigate code
