@@ -20,9 +20,11 @@ vim.opt.relativenumber = true
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
 
+-- vim.opt.conceallevel = 2
+
 -- Don't show the mode, since it's already in the status line
 vim.opt.showmode = false
-
+vim.opt.cursorcolumn = true
 -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
@@ -617,6 +619,7 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         ts_ls = {},
+        marksman = {},
         clangd = {},
         -- basedpyright does not require Node (i have lazy load ON for NVM)
         basedpyright = {
@@ -629,7 +632,7 @@ require('lazy').setup({
           },
         },
         rust_analyzer = {},
-        bashls = {},
+        shellcheck = {},
         lua_ls = {
           settings = {
             Lua = {
@@ -652,6 +655,7 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
+        'clangd',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -732,13 +736,9 @@ require('lazy').setup({
         dependencies = {
           {
             'rafamadriz/friendly-snippets',
+
             config = function()
-              -- require('luasnip.loaders.from_vscode').lazy_load()
-              require('luasnip.loaders.from_vscode').lazy_load {
-                paths = {
-                  '~/.config/Code/User/snippets/',
-                },
-              }
+              require('luasnip.loaders.from_vscode').lazy_load()
             end,
           },
         },
