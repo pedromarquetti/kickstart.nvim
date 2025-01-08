@@ -7,10 +7,9 @@ vim.g.maplocalleader = ' '
 vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
--- See `:help vim.opt`
--- NOTE: You can change these options as you wish!
---  For more options, you can see `:help option-list`
 
+vim.opt.foldmethod = 'expr'
+vim.opt.foldexpr = 'nvim_treesitter#foldexpr()'
 -- Make line numbers default
 vim.opt.number = true
 -- You can also add relative line numbers, to help with jumping.
@@ -19,6 +18,9 @@ vim.opt.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
+
+-- setting scrolloff to 0 to fix window scrolling
+vim.opt.scrolloff = 0
 
 -- vim.opt.conceallevel = 2
 
@@ -59,9 +61,6 @@ vim.opt.inccommand = 'split'
 -- Show which line your cursor is on
 vim.opt.cursorline = true
 
--- Minimal number of screen lines to keep above and below the cursor.
-vim.opt.scrolloff = 10
-
 -- settings some options for tabs
 vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
@@ -82,28 +81,36 @@ vim.api.nvim_set_hl(0, hl_name, {
   fg = ('black'):format(fg_hl.fg),
 })
 
--- [[ My Custom Keymaps ]]
---  NOTE: Maybe make this another file?
---
+-- INFO: [[ My Custom Keymaps ]]
+
+local function remap(mode, lhs, rhs, opts)
+  local options = { noremap = true }
+  if opts then
+    options = vim.tbl_extend('force', options, opts)
+  end
+  vim.api.nvim_set_keymap(mode, lhs, rhs, options)
+end
+
+remap('i', '<C-e>', '<C-o>de')
 
 vim.keymap.set('n', '<leader>n', '<cmd>:bnext<CR>', {
   desc = 'Go to next buffer',
+})
+
+vim.keymap.set('n', '<leader>st', '<cmd>:TodoTelescope<CR>', {
+  desc = '[S]earch [T]odo-comment in workspace',
 })
 
 vim.keymap.set('n', '<leader>p', '<cmd>:bprevious<CR>', {
   desc = 'Go to previous buffer',
 })
 
-vim.keymap.set('n', 'fsq', '<cmd>:w|bd<CR>', {
-  desc = 'Save and Quit file',
+vim.keymap.set('n', '<leader>dq', '<cmd>:bd<CR>', {
+  desc = '[D]ocument [Q]uit',
 })
 
-vim.keymap.set('n', 'fq', '<cmd>:bd<CR>', {
-  desc = 'Quit file',
-})
-
-vim.keymap.set('n', 'fs', '<cmd>:w<CR>', {
-  desc = 'Save Current File',
+vim.keymap.set('n', '<leader>dw', '<cmd>:w<CR>', {
+  desc = '[D]ocument [W]rite',
 })
 
 vim.keymap.set('n', '<F2>', '<cmd>RunCode<CR>', {
@@ -111,7 +118,7 @@ vim.keymap.set('n', '<F2>', '<cmd>RunCode<CR>', {
 })
 
 -- Open mini-files
-vim.keymap.set('n', '<C-e>', '<cmd>lua MiniFiles.open()<CR>', { desc = 'Open file explorer' })
+vim.keymap.set('n', '\\', '<cmd>lua MiniFiles.open()<CR>', { desc = 'Open file explorer' })
 
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
@@ -207,6 +214,9 @@ require('lazy').setup({
     -- autoclose brackets
     'm4xshen/autoclose.nvim',
     opts = {
+      options = {
+        disabled_filetypes = {},
+      },
       -- commenting this out because it was breaking html autoclose tag plugins
       -- keys = {
       --   ['<'] = {
@@ -225,10 +235,14 @@ require('lazy').setup({
     opts = {},
   },
 
+  -- NOTE: My plugin list
+  --
   { -- Code Runner
     'CRAG666/code_runner.nvim',
     opts = {
       filetype = {
+        go = 'go run $file',
+
         typescript = 'ts-node $file',
         -- fixing python >> python3
         python = 'python3 -u',
@@ -240,6 +254,7 @@ require('lazy').setup({
       mode = 'term',
     },
   },
+
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
   -- keys can be used to configure plugin behavior/loading/etc.
@@ -284,6 +299,11 @@ require('lazy').setup({
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     opts = {
+      win = {
+        -- which key will ignore cursor position
+        no_overlap = false,
+        height = { min = 4, max = 10 },
+      },
       icons = {
         -- set icon mappings to true if you have a Nerd Font
         mappings = vim.g.have_nerd_font,
@@ -620,6 +640,7 @@ require('lazy').setup({
       local servers = {
         ts_ls = {},
         marksman = {},
+        gopls = {},
         clangd = {},
         -- basedpyright does not require Node (i have lazy load ON for NVM)
         basedpyright = {
@@ -736,7 +757,6 @@ require('lazy').setup({
         dependencies = {
           {
             'rafamadriz/friendly-snippets',
-
             config = function()
               require('luasnip.loaders.from_vscode').lazy_load()
             end,
@@ -781,33 +801,29 @@ require('lazy').setup({
           -- Accept ([y]es) the completion.
           --  This will auto-import if your LSP supports it.
           --  This will expand snippets if the LSP sent a snippet.
-          ['<C-y>'] = cmp.mapping.confirm { select = true },
+          -- ['<C-y>'] = cmp.mapping.confirm { select = true },
 
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
-          --['<CR>'] = cmp.mapping.confirm { select = true },
-          --['<Tab>'] = cmp.mapping.select_next_item(),
-          --['<S-Tab>'] = cmp.mapping.select_prev_item(),
+          ['<CR>'] = cmp.mapping.confirm { select = true },
+          ['<Tab>'] = cmp.mapping.select_next_item(),
+          ['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
           -- Manually trigger a completion from nvim-cmp.
           --  Generally you don't need this, because nvim-cmp will display
           --  completions whenever it has completion options available.
           ['<C-Space>'] = cmp.mapping.complete {},
 
-          -- Think of <c-l> as moving to the right of your snippet expansion.
-          --  So if you have a snippet that's like:
-          --  function $name($args)
-          --    $body
-          --  end
-          --
-          -- <c-l> will move you to the right of each of the expansion locations.
-          -- <c-h> is similar, except moving you backwards.
-          ['<C-l>'] = cmp.mapping(function()
+          -- NOTE: <C-l/h are the old "next/prev" snippet jumpers, changed to tab and shift tab
+
+          -- ['<C-l>'] = cmp.mapping(function()
+          ['<Tab>'] = cmp.mapping(function()
             if luasnip.expand_or_locally_jumpable() then
               luasnip.expand_or_jump()
             end
           end, { 'i', 's' }),
-          ['<C-h>'] = cmp.mapping(function()
+          -- ['<C-h>'] = cmp.mapping(function()
+          ['<S-Tab>'] = cmp.mapping(function()
             if luasnip.locally_jumpable(-1) then
               luasnip.jump(-1)
             end
@@ -854,7 +870,10 @@ require('lazy').setup({
     event = 'VimEnter',
     dependencies = { 'nvim-lua/plenary.nvim' },
     opts = {
-      signs = false,
+      -- signs = false,
+      highlight = {
+        comments_only = false,
+      },
     },
   },
 
