@@ -27,6 +27,7 @@ vim.opt.scrolloff = 0
 -- Don't show the mode, since it's already in the status line
 vim.opt.showmode = false
 vim.opt.cursorcolumn = true
+
 -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
@@ -93,6 +94,10 @@ end
 
 remap('i', '<C-e>', '<C-o>de')
 
+vim.keymap.set('n', '<leader>rp', '<cmd>:MurenToggle<CR>', {
+  desc = '[R]e[P]lace',
+})
+
 vim.keymap.set('n', '<leader>n', '<cmd>:bnext<CR>', {
   desc = 'Go to next buffer',
 })
@@ -116,6 +121,10 @@ vim.keymap.set('n', '<leader>dw', '<cmd>:w<CR>', {
 vim.keymap.set('n', '<F2>', '<cmd>RunCode<CR>', {
   desc = 'Run RunCode command',
 })
+
+vim.keymap.set('n', '[c', function()
+  require('treesitter-context').go_to_context(vim.v.count1)
+end, { silent = true, desc = 'jump upwards on context' })
 
 -- Open mini-files
 vim.keymap.set('n', '\\', '<cmd>lua MiniFiles.open()<CR>', { desc = 'Open file explorer' })
@@ -153,25 +162,6 @@ vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower win
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
 -- [[ Basic Autocommands ]]
---  See `:help lua-guide-autocommands`
-
--- -- Run nvm on bash scripts
--- vim.api.nvim_create_autocmd('BufReadPre', {
---   desc = 'Run "nvm use code " on .sh files. bashls requires node',
---   group = vim.api.nvim_create_augroup('nvm-start-cmd', { clear = true }),
---   callback = function(opts)
---     local filetype = vim.bo.filetype
---
--- vim.cmd.echo(filetype.format('"%s"', filetype))
---   if vim.bo[opts.buf].filetype == ('shell' or 'sh' or 'bash') then
---     vim.cmd = 'lua print("remember to run nvm use code to enable bashls")'
---   else
---     vim.cmd = 'lua print("oi")'
---   end
---   vim.cmd { cmd = 'echo', args = { '"foo"' } }
---   vim.cmd.echo '"foo"'
---   end,
--- })
 
 -- Highlight when yanking (copying) text
 --  Try it with `yap` in normal mode
@@ -182,6 +172,23 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   callback = function()
     vim.highlight.on_yank()
   end,
+})
+
+-- Enable bash LS for .sh files
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'sh',
+  callback = function()
+    vim.lsp.start {
+      name = 'bash-language-server',
+      cmd = { 'bash-language-server', 'start' },
+    }
+  end,
+})
+
+-- Clear jumps on Vim Enter (Ctrl I/O was taking me to other projects)
+vim.api.nvim_create_autocmd('VimEnter', {
+  pattern = '*',
+  command = 'clearjumps',
 })
 
 -- [[ Install `lazy.nvim` plugin manager ]]
@@ -209,7 +216,31 @@ vim.opt.rtp:prepend(lazypath)
 -- NOTE: Here is where you install your plugins.
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
-  'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
+  --
+  -- NOTE: My plugin list
+
+  {
+    -- 'AckslD/muren.nvim',
+    'pedromarquetti/muren.nvim',
+    config = true,
+  },
+
+  -- {
+  --   'AckslD/muren.nvim',
+  --   config = true,
+  -- },
+
+  {
+    'nvim-treesitter/nvim-treesitter-context', -- show context on top row (func names)
+    opts = {
+      multiline_threshold = 2,
+    },
+  },
+
+  {
+    'LunarVim/bigfile.nvim', -- enhances Big file load time
+  },
+
   {
     -- autoclose brackets
     'm4xshen/autoclose.nvim',
@@ -235,8 +266,15 @@ require('lazy').setup({
     opts = {},
   },
 
-  -- NOTE: My plugin list
-  --
+  {
+    'ray-x/lsp_signature.nvim',
+    event = 'VeryLazy',
+    opts = {},
+    config = function(_, opts)
+      require('lsp_signature').setup(opts)
+    end,
+  },
+
   { -- Code Runner
     'CRAG666/code_runner.nvim',
     opts = {
@@ -255,6 +293,7 @@ require('lazy').setup({
     },
   },
 
+  'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
   -- keys can be used to configure plugin behavior/loading/etc.
@@ -366,6 +405,7 @@ require('lazy').setup({
     event = 'VimEnter',
     branch = '0.1.x',
     dependencies = {
+
       'nvim-lua/plenary.nvim',
       { -- If encountering errors, see telescope-fzf-native README for installation instructions
         'nvim-telescope/telescope-fzf-native.nvim',
@@ -472,7 +512,6 @@ require('lazy').setup({
       end, { desc = '[S]earch [N]eovim files' })
     end,
   },
-
   -- LSP Plugins
   {
     -- `lazydev` configures Lua LSP for your Neovim config, runtime and plugins
@@ -654,6 +693,7 @@ require('lazy').setup({
         },
         rust_analyzer = {},
         shellcheck = {},
+        bashls = {},
         lua_ls = {
           settings = {
             Lua = {
@@ -926,6 +966,7 @@ require('lazy').setup({
       end
     end,
   },
+
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
